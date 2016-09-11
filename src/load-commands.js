@@ -22,6 +22,7 @@ function requireCommands () {
     object: require('./api/object'),
     pin: require('./api/pin'),
     ping: require('./api/ping'),
+    pubsub: require('./api/pubsub'),
     refs: require('./api/refs'),
     repo: require('./api/repo'),
     swarm: require('./api/swarm'),

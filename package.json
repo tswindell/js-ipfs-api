@@ -65,10 +65,12 @@
     "hapi": "^16.0.1",
     "interface-ipfs-core": "^0.22.1",
     "ipfsd-ctl": "^0.17.0",
+    "js-base64": "^2.1.9",
     "pre-commit": "^1.2.0",
     "socket.io": "^1.7.1",
     "socket.io-client": "^1.7.1",
-    "stream-equal": "^0.1.12"
+    "stream-equal": "^0.1.12",
+    "stream-http": "^2.3.1"
   },
   "pre-commit": [
     "lint",
