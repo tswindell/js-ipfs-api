@@ -14,8 +14,8 @@ module.exports = (http) => {
     socket.on('fs-dismantle', dismantle.bind(socket))
   }
 
-  function spawnNode (repoPath, config) {
-    ds.spawnNode(repoPath, config, (err, apiAddr) => {
+  function spawnNode (repoPath, config, useLocalDaemon) {
+    ds.spawnNode(repoPath, config, useLocalDaemon, (err, apiAddr) => {
       if (err) {
         throw err
       }

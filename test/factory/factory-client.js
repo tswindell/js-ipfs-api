@@ -17,7 +17,7 @@ function Factory () {
   let sioConnected = false
   let ioC
 
-  this.spawnNode = (repoPath, config, callback) => {
+  this.spawnNode = (repoPath, config, useLocalDaemon, callback) => {
     if (typeof repoPath === 'function') {
       callback = repoPath
       repoPath = undefined
@@ -25,6 +25,10 @@ function Factory () {
     if (typeof config === 'function') {
       callback = config
       config = undefined
+    }
+    if (typeof useLocalDaemon === 'function') {
+      callback = useLocalDaemon
+      useLocalDaemon = false
     }
 
     if (sioConnected) {
@@ -43,7 +47,7 @@ function Factory () {
         const ipfs = ipfsAPI(apiAddr)
         callback(null, ipfs)
       })
-      ioC.emit('fs-spawn-node', repoPath, config)
+      ioC.emit('fs-spawn-node', repoPath, config, useLocalDaemon)
     }
   }
 
