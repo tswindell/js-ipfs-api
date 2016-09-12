@@ -5,6 +5,7 @@
 const expect = require('chai').expect
 const isNode = require('detect-node')
 const FactoryClient = require('../factory/factory-client')
+const ipfsApi = require('../../src')
 
 const useLocalDaemon = true
 
@@ -18,33 +19,41 @@ describe('.pubsub', () => {
 
   before(function (done) {
     this.timeout(20 * 1000) // slow CI
-    fc = new FactoryClient()
-    fc.spawnNode(null, null, useLocalDaemon, (err, node) => {
-      expect(err).to.not.exist
-      ipfs = node
+    // fc = new FactoryClient()
+    // fc.spawnNode(null, null, useLocalDaemon, (err, node) => {
+    //   console.log("aaaa", err, node)
+    //   expect(err).to.not.exist
+    //   if(err) done(err)
+      ipfs = ipfsApi()
       done()
-    })
+    // })
   })
 
-  after((done) => {
-    fc.dismantle(done)
-  })
+  // after((done) => {
+  //   // fc.dismantle(done)
+  // })
 
   it.only('sub', (done) => {
-    console.log('1')
     ipfs.pubsub.sub('testi1', (err, result) => {
-      console.log('RESULT1', err, result)
+      // console.log('RESULT1', err, result)
       expect(err).to.not.exist
-      expect(result.length).to.equal(1)
-      done()
+      // expect(result.length).to.equal(1)
+      result.on('data', function (d) {
+        // console.log("-->", d)
+        expect(d.data).to.equal('hi')
+        done()
+      })
+      result.on('end', function () {
+        console.log("END!!")
+      })
     })
-    // setTimeout(() => {
-    //   ipfs.pubsub.pub('testi1', 'hi')
-    // }, 1000)
+    setTimeout(() => {
+      ipfs.pubsub.pub('testi1', 'hi')
+    }, 100)
   })
 
   describe('.pub', () => {
-    it('publishes a message - from string', (done) => {
+    it.only('publishes a message - from string', (done) => {
       const data = 'hello friend'
       ipfs.pubsub.pub('testi1', data, (err, result) => {
         expect(err).to.not.exist
@@ -53,7 +62,7 @@ describe('.pubsub', () => {
       })
     })
 
-    it('publishes a message - from Buffer', (done) => {
+    it.only('publishes a message - from Buffer', (done) => {
       const data = new Buffer('hello buffer')
       ipfs.pubsub.pub('testi1', data, (err, result) => {
         expect(err).to.not.exist

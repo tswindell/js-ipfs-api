@@ -5,6 +5,7 @@ const bs58 = require('bs58')
 var Base64 = require('js-base64').Base64
 // const Wreck = require('wreck')
 var http = require('http')
+var Writable = require('stream').Writable;
 
 module.exports = (send) => {
   const api = {
@@ -17,6 +18,22 @@ module.exports = (send) => {
         options = {}
       }
 
+
+      // var ws = Writable();
+      var Stream = require('stream');
+      var rs = new Stream;
+      rs.readable = true;
+
+      // ws._write = function (chunk, enc, next) {
+      //   // console.log('>', d.toString())
+      //   var parsed = JSON.parse(chunk)
+      //   parsed.from = bs58.encode(parsed.from)
+      //   parsed.data = Base64.decode(parsed.data)
+      //   parsed.seqno = Base64.decode(parsed.seqno)
+      //   console.log(parsed)
+      //   next();
+      // };
+
       console.log('Sub', topic)
       http.get({
         host: 'localhost',
@@ -24,43 +41,42 @@ module.exports = (send) => {
         path: '/api/v0/pubsub/sub/' + topic
       }, function (response) {
         // Continuously update stream with data
-        var body = ''
+        // var body = ''
+        // response.pipe
         response.on('data', function (d) {
-          // console.log('>', d.toString())
+          // console.log("chunk", d.toString())
           var parsed = JSON.parse(d)
           parsed.from = bs58.encode(parsed.from)
           parsed.data = Base64.decode(parsed.data)
           parsed.seqno = Base64.decode(parsed.seqno)
-          console.log(parsed)
-          body += d
+          // console.log(parsed)
+          rs.emit('data', parsed)
+          // rs.push(JSON.stringify(parsed))
+          // ws.write(d)
+          // body += d
         })
         response.on('end', function () {
+          rs.emit('end')
           // Data reception is done, do whatever with it!
-          var parsed = JSON.parse(body)
-          console.log(parsed)
-          callback(null, parsed)
+          // var parsed = JSON.parse(body)
+          // console.log(parsed)
+          // callback(null, parsed)
         })
+
+        callback(null, rs)
       })
-
-      // Wreck.get('http://localhost:5001/api/v0/pubsub/sub/' + topic, (err, res, payload) => {
-      //   if (err) {
-      //     return callback(err)
-      //   }
-
-      //   console.log(payload.toString())
-      //   // const result = JSON.parse(res)
-      //   callback(null, payload)
-      // })
 
       // send({
       //   path: 'pubsub/sub/' + topic
-      // }, (err, result) => {
-      //   console.log('RESULT', err, result)
+      // }, (err, response) => {
+      //   console.log('RESULT', err, response)
       //   if (err) {
       //     return callback(err)
       //   }
 
-      //   callback(null, result) // result is a Stream
+      //   console.log("THIS IS THE CALLBACK")
+      //   callback(null, response.pipe(ndjson.parse()))
+      //   // callback(null, result) // result is a Stream
       // })
     }),
     pub: promisify((topic, data, options, callback) => {
@@ -81,8 +97,7 @@ module.exports = (send) => {
 
       send({
         path: 'pubsub/pub',
-        qs: { topic: topic },
-        files: buf
+        args: [topic, buf]
       }, (err, result) => {
         if (err) {
           return callback(err)
