@@ -35,9 +35,7 @@ describe('.pubsub', () => {
 
   it.only('sub', (done) => {
     ipfs.pubsub.sub('testi1', (err, result) => {
-      // console.log('RESULT1', err, result)
       expect(err).to.not.exist
-      // expect(result.length).to.equal(1)
       result.on('data', function (d) {
         // console.log("-->", d)
         expect(d.data).to.equal('hi')
