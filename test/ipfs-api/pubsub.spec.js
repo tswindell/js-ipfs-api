@@ -1,5 +1,6 @@
 /* eslint-env mocha */
 /* eslint max-nested-callbacks: ['error', 8] */
+/* globals apiClients */
 'use strict'
 
 const expect = require('chai').expect
@@ -94,6 +95,25 @@ describe('.pubsub', () => {
       setTimeout(() => {
         interval = setInterval(publish.bind(null, ipfs, 'hi', () => {}), 10)
       }, 10)
+    })
+  })
+  describe('multiple nodes pub/sub', () => {
+    it('receive messages from different node', (done) => {
+      const expectedString = 'hello from the other side'
+      apiClients.a.pubsub.sub(topicName, (err, subscription) => {
+        expect(err).to.not.exists
+        subscription.on('data', (d) => {
+          expect(d.data).to.be.equal(expectedString)
+          subscription.cancel()
+          done()
+        })
+      })
+      setTimeout(() => {
+        apiClients.b.pubsub.pub(topicName, expectedString, (err, result) => {
+          expect(err).to.not.exist
+          expect(result).to.equal(true)
+        })
+      }, 100)
     })
   })
 })
