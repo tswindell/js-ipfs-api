@@ -20,6 +20,13 @@ const removeSubscription = (subscriptions, topic) => {
 const addSubscription = (subscriptions, topic) => {
   return subscriptions.concat([topic])
 }
+const parseMessage = (message) => {
+  return Object.assign({}, message, {
+    from: bs58.encode(message.from),
+    data: Base64.decode(message.data),
+    seqno: Base64.decode(message.seqno)
+  })
+}
 
 module.exports = (send, config) => {
   return {
@@ -50,14 +57,11 @@ module.exports = (send, config) => {
         path: '/api/v0/pubsub/sub/' + topic
       }, function (response) {
         response.on('data', function (d) {
-          var parsed = JSON.parse(d)
+          var data = JSON.parse(d)
 
           // skip "double subscription" error
-          if (!parsed.Message) {
-            parsed.from = bs58.encode(parsed.from)
-            parsed.data = Base64.decode(parsed.data)
-            parsed.seqno = Base64.decode(parsed.seqno)
-            rs.emit('data', parsed)
+          if (!data.Message) {
+            rs.emit('data', parseMessage(data))
           }
         })
         response.on('end', function () {
