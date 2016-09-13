@@ -84,12 +84,8 @@ module.exports = (send, config) => {
         options = {}
       }
 
-      let buf
-      if (Buffer.isBuffer(data)) {
-        buf = data
-      } else {
-        buf = new Buffer(data)
-      }
+      const isBuffer = Buffer.isBuffer(data)
+      const buf = isBuffer ? data : new Buffer(data)
 
       send({
         path: 'pubsub/pub',
