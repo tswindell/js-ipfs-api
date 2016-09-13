@@ -15,7 +15,7 @@ function Factory () {
 
   let nodes = []
 
-  this.spawnNode = (repoPath, config, useLocalDaemon, callback) => {
+  this.spawnNode = (repoPath, config, callback) => {
     if (typeof repoPath === 'function') {
       callback = repoPath
       repoPath = undefined
@@ -37,23 +37,13 @@ function Factory () {
     // This will come once the new ipfsd-ctl is
     // complete: https://github.com/ipfs/js-ipfsd-ctl/pull/89
 
-    if (useLocalDaemon) {
-      spawnLocalNode((err, node) => {
-        if (err) {
-          return callback(err)
-        }
-        nodes.push(node)
-        callback(null, node.apiAddr)
-      })
-    } else {
-      spawnEphemeralNode((err, node) => {
-        if (err) {
-          return callback(err)
-        }
-        nodes.push(node)
-        callback(null, node.apiAddr)
-      })
-    }
+    spawnEphemeralNode((err, node) => {
+      if (err) {
+        return callback(err)
+      }
+      nodes.push(node)
+      callback(null, node.apiAddr)
+    })
   }
 
   this.dismantle = (callback) => {
