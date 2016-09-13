@@ -9,6 +9,16 @@ const ipfsApi = require('../../src')
 
 const useLocalDaemon = true
 
+const topicName = 'js-ipfs-api-tests'
+
+const publish = (ipfs, data, callback) => {
+  ipfs.pubsub.pub(topicName, data, (err, result) => {
+    expect(err).to.not.exist
+    expect(result).to.equal(true)
+    callback()
+  })
+}
+
 describe('.pubsub', () => {
   if (!isNode) {
     return
@@ -33,40 +43,62 @@ describe('.pubsub', () => {
   //   // fc.dismantle(done)
   // })
 
-  it.only('sub', (done) => {
-    ipfs.pubsub.sub('testi1', (err, result) => {
-      expect(err).to.not.exist
-      result.on('data', function (d) {
-        // console.log("-->", d)
-        expect(d.data).to.equal('hi')
-        done()
-      })
-      result.on('end', function () {
-        console.log("END!!")
-      })
+  describe('.publish', () => {
+    it('message from string', (done) => {
+      publish(ipfs, 'hello friend', done)
     })
-    setTimeout(() => {
-      ipfs.pubsub.pub('testi1', 'hi')
-    }, 100)
+    it('message from buffer', (done) => {
+      publish(ipfs, new Buffer('hello friend'), done)
+    })
   })
 
-  describe('.pub', () => {
-    it.only('publishes a message - from string', (done) => {
-      const data = 'hello friend'
-      ipfs.pubsub.pub('testi1', data, (err, result) => {
+  describe('.subscribe', () => {
+    it('one topic', (done) => {
+      ipfs.pubsub.sub(topicName, (err, subscription) => {
         expect(err).to.not.exist
-        expect(result).to.equal(true)
-        done()
+        subscription.on('data', (d) => {
+          expect(d.data).to.equal('hi')
+          subscription.cancel()
+        })
+        subscription.on('end', () => {
+          done()
+        })
       })
+      setTimeout(publish.bind(null, ipfs, 'hi', () => {}), 0)
     })
+    it('fails when already subscribed', (done) => {
+      ipfs.pubsub.sub(topicName, (firstErr, firstSub) => {
+        expect(firstErr).to.not.exist
+        ipfs.pubsub.sub(topicName, (secondErr, secondSub) => {
+          expect(secondErr).to.be.an('error')
+          expect(secondErr.toString()).to.equal('Error: Already subscribed to ' + topicName)
+          firstSub.cancel()
+          done()
+        }).catch(done)
+      }).catch(done)
+    })
+    it('receive multiple messages', (done) => {
+      let receivedMessages = []
+      let interval = null
+      const expectedMessages = 2
+      ipfs.pubsub.sub(topicName, (err, subscription) => {
+        expect(err).to.not.exists
+        subscription.on('data', (d) => {
+          receivedMessages.push(d.data)
+          if (receivedMessages.length === expectedMessages) {
+            receivedMessages.forEach((msg) => {
+              expect(msg).to.be.equal('hi')
+            })
+            clearInterval(interval)
+            subscription.cancel()
+            done()
+          }
+        })
+      }).catch(done)
 
-    it.only('publishes a message - from Buffer', (done) => {
-      const data = new Buffer('hello buffer')
-      ipfs.pubsub.pub('testi1', data, (err, result) => {
-        expect(err).to.not.exist
-        expect(result).to.equal(true)
-        done()
-      })
+      setTimeout(() => {
+        interval = setInterval(publish.bind(null, ipfs, 'hi', () => {}), 10)
+      }, 10)
     })
   })
 })

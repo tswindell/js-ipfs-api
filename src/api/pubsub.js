@@ -7,6 +7,21 @@ var Stream = require('stream')
 // const Wreck = require('wreck')
 var http = require('http')
 
+let activeSubscriptions = []
+
+const subscriptionExists = (subscriptions, topic) => {
+  return subscriptions.indexOf(topic) !== -1
+}
+const removeSubscription = (subscriptions, topic) => {
+  const indexToRemove = subscriptions.indexOf(topic)
+  return subscriptions.filter((el, index) => {
+    return index !== indexToRemove
+  })
+}
+const addSubscription = (subscriptions, topic) => {
+  return subscriptions.concat([topic])
+}
+
 module.exports = (send) => {
   const api = {
     sub: promisify((topic, options, callback) => {
@@ -18,12 +33,17 @@ module.exports = (send) => {
         options = {}
       }
 
-
       var rs = new Stream()
       rs.readable = true
 
-      console.log('Sub', topic)
-      http.get({
+      if (!subscriptionExists(activeSubscriptions, topic)) {
+        activeSubscriptions = addSubscription(activeSubscriptions, topic)
+      } else {
+        return callback(new Error('Already subscribed to ' + topic), null)
+      }
+
+      // we're using http.get here to have more control
+      const request = http.get({
         host: 'localhost',
         port: 5001,
         path: '/api/v0/pubsub/sub/' + topic
@@ -32,7 +52,7 @@ module.exports = (send) => {
           var parsed = JSON.parse(d)
 
           // skip "double subscription" error
-          if(!parsed.Message) {
+          if (!parsed.Message) {
             parsed.from = bs58.encode(parsed.from)
             parsed.data = Base64.decode(parsed.data)
             parsed.seqno = Base64.decode(parsed.seqno)
@@ -42,21 +62,17 @@ module.exports = (send) => {
         response.on('end', function () {
           rs.emit('end')
         })
-
-        callback(null, rs)
+        rs.cancel = () => {
+          request.abort()
+          response.destroy()
+          activeSubscriptions = removeSubscription(activeSubscriptions, topic)
+        }
       })
-
-      // send({
-      //   path: 'pubsub/sub/' + topic
-      // }, (err, response) => {
-      //   console.log('RESULT', err, response)
-      //   if (err) {
-      //     return callback(err)
-      //   }
-
-      //   callback(null, response.pipe(ndjson.parse()))
-      //   // callback(null, result) // result is a Stream
-      // })
+      rs.cancel = () => {
+        request.abort()
+        activeSubscriptions = removeSubscription(activeSubscriptions, topic)
+      }
+      callback(null, rs)
     }),
     pub: promisify((topic, data, options, callback) => {
       if (typeof options === 'function') {
@@ -81,7 +97,6 @@ module.exports = (send) => {
         if (err) {
           return callback(err)
         }
-
         callback(null, true)
       })
     })
