@@ -65,7 +65,6 @@ module.exports = (send, config) => {
         })
         rs.cancel = () => {
           request.abort()
-          response.destroy()
           activeSubscriptions = removeSubscription(activeSubscriptions, topic)
         }
       })
