@@ -61,25 +61,6 @@ function Factory () {
   }
 }
 
-function spawnLocalNode (callback) {
-  console.log("Spawn local node")
-  ipfsd.local((err, node) => {
-    if (err) {
-      return callback(err)
-    }
-
-  console.log("start daemon")
-    node.startDaemon((err, ipfs) => {
-  console.log("started")
-      if (err) {
-        return callback(err)
-      }
-
-      callback(null, node)
-    })
-  })
-}
-
 function spawnEphemeralNode (callback) {
   ipfsd.disposable((err, node) => {
     if (err) {

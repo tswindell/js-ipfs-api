@@ -4,7 +4,6 @@ const promisify = require('promisify-es6')
 const bs58 = require('bs58')
 var Base64 = require('js-base64').Base64
 var Stream = require('stream')
-// const Wreck = require('wreck')
 var http = require('http')
 
 let activeSubscriptions = []
@@ -22,8 +21,8 @@ const addSubscription = (subscriptions, topic) => {
   return subscriptions.concat([topic])
 }
 
-module.exports = (send) => {
-  const api = {
+module.exports = (send, config) => {
+  return {
     sub: promisify((topic, options, callback) => {
       if (typeof options === 'function') {
         callback = options
@@ -42,10 +41,12 @@ module.exports = (send) => {
         return callback(new Error('Already subscribed to ' + topic), null)
       }
 
-      // we're using http.get here to have more control
+      // we're using http.get here to have more control over the request
+      // and avoid refactoring of the request-api where wreck is gonna be
+      // replaced by fetch (https://github.com/ipfs/js-ipfs-api/pull/355)
       const request = http.get({
-        host: 'localhost',
-        port: 5001,
+        host: config.host,
+        port: config.port,
         path: '/api/v0/pubsub/sub/' + topic
       }, function (response) {
         response.on('data', function (d) {
@@ -101,6 +102,4 @@ module.exports = (send) => {
       })
     })
   }
-
-  return api
 }

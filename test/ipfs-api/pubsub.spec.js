@@ -5,9 +5,6 @@
 const expect = require('chai').expect
 const isNode = require('detect-node')
 const FactoryClient = require('../factory/factory-client')
-const ipfsApi = require('../../src')
-
-const useLocalDaemon = true
 
 const topicName = 'js-ipfs-api-tests'
 
@@ -28,20 +25,18 @@ describe('.pubsub', () => {
   let fc
 
   before(function (done) {
-    this.timeout(20 * 1000) // slow CI
-    // fc = new FactoryClient()
-    // fc.spawnNode(null, null, useLocalDaemon, (err, node) => {
-    //   console.log("aaaa", err, node)
-    //   expect(err).to.not.exist
-    //   if(err) done(err)
-      ipfs = ipfsApi()
+    fc = new FactoryClient()
+    fc.spawnNode((err, node) => {
+      expect(err).to.not.exist
+      if (err) done(err)
+      ipfs = node
       done()
-    // })
+    })
   })
 
-  // after((done) => {
-  //   // fc.dismantle(done)
-  // })
+  after((done) => {
+    fc.dismantle(done)
+  })
 
   describe('.publish', () => {
     it('message from string', (done) => {

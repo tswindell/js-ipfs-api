@@ -54,12 +54,12 @@ function requireCommands () {
   return cmds
 }
 
-function loadCommands (send) {
+function loadCommands (send, config) {
   const files = requireCommands()
   const cmds = {}
 
   Object.keys(files).forEach((file) => {
-    cmds[file] = files[file](send)
+    cmds[file] = files[file](send, config)
   })
 
   return cmds
