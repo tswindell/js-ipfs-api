@@ -2,9 +2,10 @@
 
 const promisify = require('promisify-es6')
 const bs58 = require('bs58')
-var Base64 = require('js-base64').Base64
-var Stream = require('stream')
-var http = require('http')
+const Base64 = require('js-base64').Base64
+const Stream = require('stream')
+const Readable = Stream.Readable
+const http = require('http')
 
 let activeSubscriptions = []
 
@@ -39,8 +40,8 @@ module.exports = (send, config) => {
         options = {}
       }
 
-      var rs = new Stream()
-      rs.readable = true
+      var rs = new Readable({objectMode: true})
+      rs._read = () => {}
 
       if (!subscriptionExists(activeSubscriptions, topic)) {
         activeSubscriptions = addSubscription(activeSubscriptions, topic)
