@@ -49,13 +49,18 @@ module.exports = (send, config) => {
         return callback(new Error('Already subscribed to ' + topic), null)
       }
 
+      let url = '/api/v0/pubsub/sub/' + topic
+      if (options.discover) {
+        url = url + '?discover=true'
+      }
+
       // we're using http.get here to have more control over the request
       // and avoid refactoring of the request-api where wreck is gonna be
       // replaced by fetch (https://github.com/ipfs/js-ipfs-api/pull/355)
       const request = http.get({
         host: config.host,
         port: config.port,
-        path: '/api/v0/pubsub/sub/' + topic
+        path: url
       }, function (response) {
         response.on('data', function (d) {
           var data = JSON.parse(d)
