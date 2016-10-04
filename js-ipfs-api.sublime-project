@@ -3,6 +3,9 @@
 	[
 		{
 			"path": "."
+		},
+		{
+			"path": "/Users/samuli/code/js-ipfs-merkle-dag"
 		}
 	]
 }
