@@ -3,6 +3,12 @@
 const promisify = require('promisify-es6')
 
 module.exports = (send) => {
+  /**
+   * @alias ping
+   * @method
+   * @returns {Promise|undefined}
+   * @memberof Api#
+   */
   return promisify((id, callback) => {
     send({
       path: 'ping',

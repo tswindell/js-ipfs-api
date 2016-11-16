@@ -4,6 +4,12 @@ const promisify = require('promisify-es6')
 
 module.exports = (send) => {
   return {
+    /**
+     * @alias dht.findprovs
+     * @method
+     * @returns {Promise|undefined}
+     * @memberof Api#
+     */
     findprovs: promisify((args, opts, callback) => {
       if (typeof opts === 'function' &&
           !callback) {
@@ -25,6 +31,13 @@ module.exports = (send) => {
         qs: opts
       }, callback)
     }),
+
+    /**
+     * @alias dht.get
+     * @method
+     * @returns {Promise|undefined}
+     * @memberof Api#
+     */
     get: promisify((key, opts, callback) => {
       if (typeof opts === 'function' &&
           !callback) {
@@ -70,6 +83,13 @@ module.exports = (send) => {
         qs: opts
       }, handleResult.bind(null, callback))
     }),
+
+    /**
+     * @alias dht.put
+     * @method
+     * @returns {Promise|undefined}
+     * @memberof Api#
+     */
     put: promisify((key, value, opts, callback) => {
       if (typeof opts === 'function' &&
           !callback) {

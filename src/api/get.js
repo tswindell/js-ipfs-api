@@ -5,6 +5,12 @@ const cleanMultihash = require('../clean-multihash')
 const promisify = require('promisify-es6')
 
 module.exports = (send) => {
+  /**
+   * @alias get
+   * @method
+   * @returns {Promise|undefined}
+   * @memberof Api#
+   */
   return promisify(function get (path, opts, callback) {
     if (typeof opts === 'function' &&
         !callback) {
