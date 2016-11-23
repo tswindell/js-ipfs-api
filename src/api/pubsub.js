@@ -1,109 +1,106 @@
 'use strict'
 
 const promisify = require('promisify-es6')
-const bs58 = require('bs58')
-const Base64 = require('js-base64').Base64
-const Stream = require('stream')
-const Readable = Stream.Readable
-const http = require('http')
+const pubsubMessageStream = require('../pubsub-message-stream')
 
-let activeSubscriptions = []
+/* Internal subscriptions state and functions */
+let subscriptions = {}
 
-const subscriptionExists = (subscriptions, topic) => {
-  return subscriptions.indexOf(topic) !== -1
-}
-const removeSubscription = (subscriptions, topic) => {
-  const indexToRemove = subscriptions.indexOf(topic)
-  return subscriptions.filter((el, index) => {
-    return index !== indexToRemove
-  })
-}
-const addSubscription = (subscriptions, topic) => {
-  return subscriptions.concat([topic])
-}
-const parseMessage = (message) => {
-  return Object.assign({}, message, {
-    from: bs58.encode(message.from),
-    data: Base64.decode(message.data),
-    seqno: Base64.decode(message.seqno)
-  })
+const addSubscription = (topic, request) => {
+  subscriptions[topic] = { request: request }
 }
 
+const removeSubscription = promisify((topic, callback) => {
+  if (!subscriptions[topic]) {
+    return callback(new Error(`Not subscribed to ${topic}`))
+  }
+
+  subscriptions[topic].request.abort()
+  delete subscriptions[topic]
+
+  if (callback) {
+    callback(null)
+  }
+})
+
+/* Public API */
 module.exports = (send, config) => {
   return {
-    sub: promisify((topic, options, callback) => {
+    subscribe: promisify((topic, options, callback) => {
+      const defaultOptions = {
+        discover: false
+      }
+
       if (typeof options === 'function') {
         callback = options
-        options = {}
+        options = defaultOptions
       }
+
       if (!options) {
-        options = {}
+        options = defaultOptions
       }
 
-      var rs = new Readable({objectMode: true})
-      rs._read = () => {}
-
-      if (!subscriptionExists(activeSubscriptions, topic)) {
-        activeSubscriptions = addSubscription(activeSubscriptions, topic)
-      } else {
-        return callback(new Error('Already subscribed to ' + topic), null)
+      // If we're already subscribed, return an error
+      if (subscriptions[topic]) {
+        return callback(new Error(`Already subscribed to '${topic}'`))
       }
 
-      let url = '/api/v0/pubsub/sub/' + topic
-      if (options.discover) {
-        url = url + '?discover=true'
+      // Request params
+      const request = {
+        path: 'pubsub/sub',
+        args: [topic],
+        qs: { discover: options.discover }
       }
 
-      // we're using http.get here to have more control over the request
-      // and avoid refactoring of the request-api where wreck is gonna be
-      // replaced by fetch (https://github.com/ipfs/js-ipfs-api/pull/355)
-      const request = http.get({
-        host: config.host,
-        port: config.port,
-        path: url
-      }, function (response) {
-        response.on('data', function (d) {
-          var data = JSON.parse(d)
-
-          // skip "double subscription" error
-          if (!data.Message) {
-            rs.emit('data', parseMessage(data))
-          }
-        })
-        response.on('end', function () {
-          rs.emit('end')
-        })
-        rs.cancel = () => {
-          request.abort()
-          activeSubscriptions = removeSubscription(activeSubscriptions, topic)
-        }
-      })
-      rs.cancel = () => {
-        request.abort()
-        activeSubscriptions = removeSubscription(activeSubscriptions, topic)
-      }
-      callback(null, rs)
-    }),
-    pub: promisify((topic, data, options, callback) => {
-      if (typeof options === 'function') {
-        callback = options
-        options = {}
-      }
-      if (!options) {
-        options = {}
-      }
-
-      const isBuffer = Buffer.isBuffer(data)
-      const buf = isBuffer ? data : new Buffer(data)
-
-      send({
-        path: 'pubsub/pub',
-        args: [topic, buf]
-      }, (err, result) => {
+      // Start the request
+      const req = send(request, (err, response) => {
         if (err) {
           return callback(err)
         }
-        callback(null, true)
+
+        // Bubble the 'end' event
+        response.on('end', () => stream.emit('end'))
+
+        // Create a response stream that we'll pass back to the caller in callback
+        const stream = response.pipe(pubsubMessageStream())
+        stream.cancel = promisify((callback) => removeSubscription(topic, callback))
+
+        // Add the request to the active subscriptions and return the stream
+        addSubscription(topic, req)
+        callback(null, stream)
+      })
+    }),
+    publish: promisify((topic, data, callback) => {
+      const buf = Buffer.isBuffer(data) ? data : new Buffer(data)
+
+      const request = {
+        path: 'pubsub/pub',
+        args: [topic, buf]
+      }
+
+      send(request, callback)
+    }),
+    ls: promisify((callback) => {
+      const request = {
+        path: 'pubsub/ls'
+      }
+
+      send(request, (err, topics) => {
+        callback(err, topics.Strings || [])
+      })
+    }),
+    peers: promisify((topic, callback) => {
+      if (!subscriptions[topic]) {
+        return callback(new Error(`Not subscribed to '${topic}'`))
+      }
+
+      const request = {
+        path: 'pubsub/peers',
+        args: [topic]
+      }
+
+      send(request, (err, peers) => {
+        callback(err, peers.Strings || [])
       })
     })
   }

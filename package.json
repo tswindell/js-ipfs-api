@@ -65,6 +65,7 @@
     "gulp": "^3.9.1",
     "hapi": "^16.0.1",
     "interface-ipfs-core": "^0.22.1",
+    "ipfs-daemon": "^0.2.3",
     "ipfsd-ctl": "https://github.com/haadcode/js-ipfsd-ctl.git",
     "js-base64": "^2.1.9",
     "pre-commit": "^1.2.0",
