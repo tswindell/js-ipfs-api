@@ -9,9 +9,14 @@ const CID = require('cids')
 module.exports = (send) => {
   return {
     /**
+     * Get a raw IPFS block
+     *
      * @alias block.get
      * @method
-     * @returns {Promise|undefined}
+     * @param {CID|string} args - the multihash or CID of the block.
+     * @param {Object} [opts={}]
+     * @param {function(Error, Block)} [callback]
+     * @returns {Promise<Block>|undefined}
      * @memberof Api#
      */
     get: promisify((args, opts, callback) => {
@@ -46,15 +51,20 @@ module.exports = (send) => {
     }),
 
     /**
+     * Print information of a raw IPFS block.
+     *
      * @alias block.stat
      * @method
-     * @returns {Promise|undefined}
+     * @param {CID|string} key - the `base58` multihash or CID of the block.
+     * @param {Object} [opts={}]
+     * @param {function(Error, {key: string, size: string})} [callback]
+     * @returns {Promise<{key: string, size: string}>|undefined}
      * @memberof Api#
      */
-    stat: promisify((args, opts, callback) => {
+    stat: promisify((key, opts, callback) => {
       // TODO this needs to be adjusted with the new go-ipfs http-api
-      if (args && CID.isCID(args)) {
-        args = multihash.toB58String(args.multihash)
+      if (key && CID.isCID(key)) {
+        key = multihash.toB58String(key.multihash)
       }
 
       if (typeof (opts) === 'function') {
@@ -63,7 +73,7 @@ module.exports = (send) => {
       }
       return send({
         path: 'block/stat',
-        args: args,
+        args: key,
         qs: opts
       }, (err, stats) => {
         if (err) {
@@ -77,9 +87,15 @@ module.exports = (send) => {
     }),
 
     /**
+     * Store input as an IPFS block.
+     *
      * @alias block.put
      * @method
-     * @returns {Promise|undefined}
+     * @param {Object} block - The block to create.
+     * @param {Buffer} block.data -  The data to be stored as an IPFS block.
+     * @param {CID} [cid]
+     * @param {function(Error, Block)} [callback]
+     * @returns {Promise<Block>|undefined}
      * @memberof Api#
      */
     put: promisify((block, cid, callback) => {
