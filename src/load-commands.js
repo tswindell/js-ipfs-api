@@ -30,6 +30,12 @@ function requireCommands () {
     version: require('./api/version')
   }
 
+  cmds.exp = function (send) {
+    const exp = require('./api/exp')(send)
+    exp.corenet = require('./api/corenet')(send)
+    return exp
+  }
+
   // TODO: crowding the 'files' namespace temporarily for interface-ipfs-core
   // compatibility, until 'files vs mfs' naming decision is resolved.
   cmds.files = function (send) {
